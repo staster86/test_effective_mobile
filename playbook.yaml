@@ -1,0 +1,42 @@
+---
+- host: testsrv
+  become: true
+  vars: 
+    nginx_conf: "./ng_conf/nginx.conf.j2"
+    remote_dir: "/opt/test_app"
+  tasks:
+    - name: Copy Dockerfile
+      copy:
+        src: "./Dockerfile"
+        dest: "{{ remote_dir }}/Dockerfile"
+    - name: Copy docker-compose file
+      copy:
+        src: "./docker-compose.yaml"
+        dest: "{{ remote_dir }}/docker-compose.yaml"
+    - name: Create directory for app
+      file:
+        path: "{{ remote_dir }}/app"
+        state: directory
+    - name: Copy app
+      copy:
+        src: "./app/index.php"
+        dest: "{{ remote_dir }}/app/index.php"
+    - name: Create directory for nginx config
+      file:
+        path: "{{ remote_dir }}/nginx"
+        state: directory
+    - name: Generation nginx config
+      template:
+        src: "{{ nginx_conf }}"
+        dest: "{{ remote_dir }}/nginx/nginx.conf"
+      notify:
+        - Nginx restart
+    - name: Run docker-compose
+      shell: "cd {{ remote_dir }} && docker-compose up -d"
+      args:
+        creates: "{{ remote_dir }}/docker-compose.yaml"
+  handlers:
+    - name: Nginx restart
+      shell: "docker-compose restart nginx"  
+
+        
